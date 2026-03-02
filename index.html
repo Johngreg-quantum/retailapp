@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Manager Dashboard</title>
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-[#004526] mb-8">Lacoste Store Pulse</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#004526]">
+                <h2 class="text-gray-500 text-sm">Weekly Sales Total</h2>
+                <p id="totalSales" class="text-4xl font-bold text-gray-900">$0.00</p>
+            </div>
+        </div>
+
+        <div id="alerts" class="mb-8"></div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+            <h3 class="text-lg font-semibold mb-4">Section Performance</h3>
+            <ul id="sectionList" class="divide-y divide-gray-100"></ul>
+        </div>
+    </div>
+<div class="mt-8">
+    <h3 class="text-lg font-semibold mb-4 text-[#004526]">Live Store View (Today)</h3>
+    <div id="photo-gallery" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        </div>
+</div>
+    <script>
+     async function fetchDashboard() {
+        // 1. Fetch Trends & Sales Total
+        const res = await fetch('/manager/weekly-trends/');
+        const data = await res.json();
+
+        // 2. Fetch Daily Reports (This contains the photo paths)
+        const reportRes = await fetch('/manager/daily-report/');
+        const reportData = await reportRes.json();
+
+        // Update UI - Sales Total
+        document.getElementById('totalSales').innerText = `$${data.weekly_store_total.toLocaleString()}`;
+
+        // Render Alerts
+        const alertsDiv = document.getElementById('alerts');
+        alertsDiv.innerHTML = ''; 
+        data.management_alerts.forEach(alert => {
+            alertsDiv.innerHTML += `<div class="bg-red-50 text-red-700 p-4 rounded mb-2 font-medium border border-red-200">${alert}</div>`;
+        });
+
+        // Render Section Performance List
+        const list = document.getElementById('sectionList');
+        list.innerHTML = '';
+        for (const [section, total] of Object.entries(data.performance_by_section)) {
+            list.innerHTML += `<li class="py-3 flex justify-between border-b border-gray-100 last:border-0">
+                <span>${section}</span>
+                <span class="font-bold text-[#004526]">$${total.toLocaleString()}</span>
+            </li>`;
+        }
+
+        // 3. Render the Photo Gallery (The "Visual Check")
+        const gallery = document.getElementById('photo-gallery');
+        gallery.innerHTML = '';
+        reportData.entries.forEach(entry => {
+            gallery.innerHTML += `
+                <div class="bg-white p-2 rounded shadow-sm border text-center group transition-all hover:shadow-md">
+                   <img src="/${entry.photo_path}"
+                         class="w-full h-32 object-cover rounded mb-2 cursor-pointer transition group-hover:opacity-90" 
+                         onclick="window.open('/${entry.photo_path}', '_blank')"
+                    <p class="text-[10px] font-bold uppercase text-[#004526] tracking-tighter">${entry.section_name}</p>
+                    <p class="text-[9px] text-gray-400">${new Date(entry.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                </div>
+            `;
+        });
+    }
+
+    // Initialize the dashboard
+
+        fetchDashboard();
+    </script>
+</body>
+</html>

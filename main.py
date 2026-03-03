@@ -25,8 +25,8 @@ def home():
     <p>Go to <a href="/docs">/docs</a> or <a href="/dashboard">/dashboard</a></p>
     """
 @app.get("/dashboard")
-def dashboard():
-    return FileResponse(os.path.join(BASE_DIR, "dashboard.html"))
+def get_dashboard():
+    return FileResponse("dashboard.html")
 
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
@@ -160,3 +160,57 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/manager/weekly-trends/")
+def get_trends(db: Session = Depends(get_db)):
+    # This feeds the "Weekly Sales Total" and "Section Performance"
+    return {
+        "weekly_store_total": 0.00, 
+        "performance_by_section": {"Polo Wall": 0, "Footwear": 0},
+        "management_alerts": ["No data yet - submit your first check-in!"]
+    }
+
+@app.get("/manager/daily-report/")
+def get_daily_report(db: Session = Depends(get_db)):
+    # This feeds the "Live Store View" photo gallery
+    return db.query(models.Submission).all()
+
+
+
+from fastapi.responses import FileResponse
+
+@app.get("/")
+def get_dashboard():
+    return FileResponse("index.html")
+
+@app.get("/upload")
+def get_upload_page():
+    return FileResponse("upload.html")
+
+@app.get("/manager/daily-report/")
+def get_daily_report(db: Session = Depends(get_db)):
+    # This pulls every submission from your database to show on the dashboard
+    return db.query(models.Submission).all()
+
+@app.get("/")
+def read_root():
+    return {"status": "Pulse Engine is Online"}
+
+
+from fastapi.responses import FileResponse
+
+# 1. The Manager View (Dashboard)
+@app.get("/")
+def get_dashboard():
+    return FileResponse("index.html")
+
+# 2. The Associate View (Upload Form)
+@app.get("/upload")
+def get_upload_page():
+    return FileResponse("upload.html")
+
+# 3. The Data Feed for the Dashboard
+@app.get("/manager/daily-report/")
+def get_daily_report(db: Session = Depends(get_db)):
+    return db.query(models.Submission).all()

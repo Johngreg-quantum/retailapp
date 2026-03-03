@@ -1,8 +1,16 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, UploadFile, File, Form
-
 from fastapi.responses import HTMLResponse
 
+import models, schemas, shutil
+from database import SessionLocal, engine
+import os
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Lacoste Team Pulse")   # ✅ app first
+
+# ✅ route AFTER app exists
 @app.get("/", response_class=HTMLResponse)
 def home():
     return """
@@ -10,17 +18,9 @@ def home():
     <p>Go to <a href="/docs">/docs</a> or <a href="/dashboard">/dashboard</a></p>
     """
 
-
-import models, schemas, shutil
-from database import SessionLocal, engine
-import os
-
-models.Base.metadata.create_all(bind=engine)
-app = FastAPI(title="Lacoste Team Pulse")
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
-# This must be outside the if block to work!
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Dependency to get DB session

@@ -1,11 +1,16 @@
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, UploadFile, File, Form
-from sqlalchemy.orm import Session
 import models, schemas, shutil
 from database import SessionLocal, engine
 import os
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Lacoste Team Pulse")
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# This must be outside the if block to work!
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Dependency to get DB session
 def get_db():
@@ -85,3 +90,52 @@ async def verify_login(token: str):
     # Generate a long-term session token
     session_token = jwt.encode({"sub": email}, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": session_token, "token_type": "bearer"}
+
+
+
+from sqlalchemy import func
+from datetime import timedelta
+
+@app.get("/manager/weekly-trends/")
+def get_weekly_trends(db: Session = Depends(get_db)):
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    
+    # 1. Total Sales Trend
+    weekly_data = db.query(models.Submission).filter(
+        models.Submission.timestamp >= seven_days_ago
+    ).all()
+    
+    total_weekly_sales = sum(d.sales_amount for d in weekly_data)
+    
+    # 2. Section Performance (The "Leaderboard")
+    # This groups sales by section so you see what's actually selling
+    section_performance = {}
+    for entry in weekly_data:
+        if entry.section_name not in section_performance:
+            section_performance[entry.section_name] = 0
+        section_performance[entry.section_name] += entry.sales_amount
+
+    # 3. The "Underperformer" Alert
+    # Automatically flags sections that are averaging < $600/day
+    alerts = []
+    for section, total in section_performance.items():
+        avg = total / 7 # Simple daily average
+        if avg < 600:
+            alerts.append(f"⚠️ {section} is underperforming. Avg: ${avg:.2f}/day")
+
+    return {
+        "weekly_store_total": total_weekly_sales,
+        "performance_by_section": section_performance,
+        "management_alerts": alerts,
+        "strategy_tip": "Focus training on sections with 'Underperforming' alerts."
+    }
+
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, restrict this to your domain
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

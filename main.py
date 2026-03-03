@@ -1,6 +1,6 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 
 import models, schemas, shutil
 from database import SessionLocal, engine
@@ -9,6 +9,13 @@ import os
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Lacoste Team Pulse")   # ✅ app first
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+@app.get("/__routes")
+def list_routes():
+    return [r.path for r in app.routes]
+
+
 
 # ✅ route AFTER app exists
 @app.get("/", response_class=HTMLResponse)
@@ -17,6 +24,9 @@ def home():
     <h2>Retail App is live ✅</h2>
     <p>Go to <a href="/docs">/docs</a> or <a href="/dashboard">/dashboard</a></p>
     """
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse(os.path.join(BASE_DIR, "dashboard.html"))
 
 if not os.path.exists("uploads"):
     os.makedirs("uploads")

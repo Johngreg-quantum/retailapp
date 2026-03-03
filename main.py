@@ -1,5 +1,16 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, UploadFile, File, Form
+
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <h2>Retail App is live ✅</h2>
+    <p>Go to <a href="/docs">/docs</a> or <a href="/dashboard">/dashboard</a></p>
+    """
+
+
 import models, schemas, shutil
 from database import SessionLocal, engine
 import os
